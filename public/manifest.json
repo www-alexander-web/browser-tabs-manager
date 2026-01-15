@@ -4,12 +4,13 @@
   "description": "Save, search, export/import, and restore tab sessions.",
   "version": "0.1.0",
   "action": {
-    "default_title": "Send tabs to manager",
+    "default_title": "Browser Tabs Manager",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/icon-16.png",
+      "24": "icons/icon-24.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     }
   },
   "permissions": ["tabs", "storage"],
@@ -28,9 +29,14 @@
   },
   "options_page": "pages/options/index.html",
   "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/icon-16.png",
+    "24": "icons/icon-24.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "64": "icons/icon-64.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png",
+    "256": "icons/icon-256.png",
+    "512": "icons/icon-512.png"
   }
 }

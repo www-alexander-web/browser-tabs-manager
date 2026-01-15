@@ -49,6 +49,30 @@ Save the current window’s tabs as a session, close them, and restore/export/im
 npm install
 ```
 
+### Automatic version bumping (local git hook)
+
+This repo uses a **local-only** Git hook (Husky) to automatically bump the SemVer version in `package.json` **on every commit**.
+
+- **Default**: PATCH bump (e.g. `0.1.0` → `0.1.1`)
+- **Commit message controls the bump**:
+  - **MAJOR**: `BREAKING:` prefix, or Conventional Commits `!` marker (e.g. `feat!: ...`, `fix(scope)!: ...`)
+  - **MINOR**: `feat: ...` (or `feat(scope): ...`)
+  - **PATCH**: `fix: ...` (or `fix(scope): ...`)
+  - **No prefix**: PATCH
+
+Examples:
+
+- `fix: handle empty sessions`
+- `feat: add session search`
+- `feat!: change storage schema`
+- `BREAKING: drop legacy import format`
+
+Disable (transparent + easy):
+
+- **Per commit**: `git commit --no-verify`
+- **Per shell/session**: `export BTM_VERSION_BUMP=0`
+- **Permanently**: remove the `"prepare": "husky"` script and/or uninstall `husky`, and delete `.husky/`
+
 ### Development (UI)
 
 ```bash
@@ -64,6 +88,18 @@ npm run build
 ```
 
 The build output goes to `dist/` (extension-ready).
+
+### Icons
+
+The extension includes a full PNG icon set in `public/icons/` (generated from `public/icons/icon.svg`) at these sizes:
+
+- 16, 24, 32, 48, 64, 96, 128, 256, 512
+
+To regenerate icons:
+
+```bash
+npm run icons
+```
 
 ### Load unpacked in Chrome (step-by-step)
 

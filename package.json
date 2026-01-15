@@ -1,16 +1,18 @@
 {
   "name": "browser-tabs-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Chrome Extension (Manifest V3) — Browser Tabs Manager",
   "scripts": {
-    "predev": "node scripts/generate-icons.mjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "predev": "npm run icons",
     "dev": "vite --open /pages/manager/index.html",
-    "prebuild": "node scripts/generate-icons.mjs",
+    "prebuild": "npm run icons",
     "build": "vite build",
     "lint": "eslint .",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "prepare": "husky"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -27,7 +29,10 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "husky": "^9.1.7",
     "prettier": "^3.4.2",
+    "semver": "^7.7.3",
+    "sharp": "^0.34.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.19.1",
     "vite": "^6.0.8"

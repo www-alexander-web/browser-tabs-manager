@@ -1,27 +1,49 @@
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 
 const root = process.cwd();
 const iconsDir = path.join(root, 'public', 'icons');
+const sourceSvgPath = path.join(iconsDir, 'icon.svg');
 
-// A tiny valid PNG (1x1). Placeholder icons for dev/scaffold purposes.
-// Source: generated once and embedded here to avoid binary files in repo edits.
-const PNG_1x1_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Wj9kAAAAASUVORK5CYII=';
+const SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512];
 
-function ensureDir(p) {
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+async function ensureDir(p) {
+  await fs.mkdir(p, { recursive: true });
 }
 
-function writeIfMissing(filePath, buf) {
-  if (fs.existsSync(filePath)) return;
-  fs.writeFileSync(filePath, buf);
+async function readSourceSvg() {
+  try {
+    return await fs.readFile(sourceSvgPath);
+  } catch {
+    throw new Error(`Missing icon source SVG at: ${sourceSvgPath}`);
+  }
 }
 
-ensureDir(iconsDir);
-const buf = Buffer.from(PNG_1x1_BASE64, 'base64');
+function outPath(size) {
+  return path.join(iconsDir, `icon-${size}.png`);
+}
 
-writeIfMissing(path.join(iconsDir, 'icon16.png'), buf);
-writeIfMissing(path.join(iconsDir, 'icon32.png'), buf);
-writeIfMissing(path.join(iconsDir, 'icon48.png'), buf);
-writeIfMissing(path.join(iconsDir, 'icon128.png'), buf);
+async function renderAllPngs(svgBuf) {
+  await Promise.all(
+    SIZES.map(async (size) => {
+      const p = outPath(size);
+      await sharp(svgBuf, { density: 384 })
+        .resize(size, size, { fit: 'contain' })
+        .png({
+          compressionLevel: 9,
+          adaptiveFiltering: true,
+          force: true
+        })
+        .toFile(p);
+    })
+  );
+}
+
+async function main() {
+  await ensureDir(iconsDir);
+  const svgBuf = await readSourceSvg();
+  await renderAllPngs(svgBuf);
+}
+
+await main();
