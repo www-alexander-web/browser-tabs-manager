@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './manager.css';
-import type { CaptureInfo, Session } from '@/shared/types';
+import type { CaptureInfo, Session, Settings, TabItem } from '@/shared/types';
 import {
   exportSessionAsJson,
   getAllSessions,
   getLastCapture,
+  getSettings,
   importSessionFromJson,
   updateSession,
   deleteSession
 } from '@/shared/storage';
 import { formatDateTime } from '@/shared/time';
 import { useToast } from '@/pages/ui/toast';
-import { windowsCreate } from '@/shared/chrome';
+import { restoreTabs, type RestoreProgress, type RestoreTarget } from '@/shared/restore';
 
 function isExtensionContext(): boolean {
   return typeof chrome !== 'undefined' && !!chrome.storage?.local;
@@ -34,8 +35,17 @@ export function ManagerApp() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [tabSearch, setTabSearch] = useState('');
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
   const [lastCapture, setLastCapture] = useState<CaptureInfo | undefined>(undefined);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const importRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTabIdxBySession, setSelectedTabIdxBySession] = useState<Record<string, number[]>>(
+    {}
+  );
+  const [restoreMenuOpen, setRestoreMenuOpen] = useState(false);
+  const [restoreProgress, setRestoreProgress] = useState<RestoreProgress | null>(null);
+  const [restoreFailedPreview, setRestoreFailedPreview] = useState<string[]>([]);
 
   const filteredSessions = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,6 +67,7 @@ export function ManagerApp() {
     if (!selectedId && all[0]) setSelectedId(all[0].id);
     if (selectedId && !all.some((s) => s.id === selectedId)) setSelectedId(all[0]?.id);
     setLastCapture(await getLastCapture());
+    setSettings(await getSettings());
   }
 
   useEffect(() => {
@@ -105,16 +116,99 @@ export function ManagerApp() {
     setSelectedId(created.id);
   }
 
-  async function onOpenAllNewWindow(session: Session) {
-    const urls = session.items.map((it) => it.url);
-    if (urls.length === 0) return;
-    await windowsCreate({ url: urls });
-    toast.push('success', `Opened ${urls.length} tabs`);
+  function getSelectedIndices(sessionId: string): Set<number> {
+    const raw = selectedTabIdxBySession[sessionId] ?? [];
+    return new Set<number>(raw.filter((x) => typeof x === 'number' && Number.isFinite(x)));
   }
 
-  async function onOpenTab(url: string) {
-    // Open in the current window as a normal tab.
-    chrome.tabs.create({ url });
+  function setSelectedIndices(sessionId: string, next: Set<number>) {
+    setSelectedTabIdxBySession((prev) => ({
+      ...prev,
+      [sessionId]: [...next].sort((a, b) => a - b)
+    }));
+  }
+
+  function toggleSelected(sessionId: string, idx: number, checked: boolean) {
+    const next = getSelectedIndices(sessionId);
+    if (checked) next.add(idx);
+    else next.delete(idx);
+    setSelectedIndices(sessionId, next);
+  }
+
+  async function onOpenTab(url: string, background: boolean) {
+    chrome.tabs.create({ url, active: !background });
+  }
+
+  function canShowTabGroupRestore(): boolean {
+    return (
+      typeof chrome !== 'undefined' &&
+      typeof chrome.tabs?.group === 'function' &&
+      typeof chrome.tabGroups?.update === 'function'
+    );
+  }
+
+  function getFilteredTabIndices(items: TabItem[], q: string): number[] {
+    const query = q.trim().toLowerCase();
+    if (!query) return items.map((_, i) => i);
+    const out: number[] = [];
+    for (let i = 0; i < items.length; i += 1) {
+      const it = items[i];
+      if (it.title.toLowerCase().includes(query) || it.url.toLowerCase().includes(query)) out.push(i);
+    }
+    return out;
+  }
+
+  async function runRestore(session: Session, indices: number[] | null, target: RestoreTarget) {
+    if (!settings) return;
+    setRestoreMenuOpen(false);
+    setRestoreFailedPreview([]);
+
+    const selectedItems =
+      indices === null
+        ? session.items
+        : indices.map((i) => session.items[i]).filter((x): x is TabItem => Boolean(x));
+
+    if (selectedItems.length === 0) {
+      toast.push('info', 'No tabs selected');
+      return;
+    }
+
+    const failedUrls: string[] = [];
+    try {
+      setRestoreProgress({
+        total: selectedItems.length,
+        openedCount: 0,
+        skippedDuplicatesCount: 0,
+        failedCount: 0,
+        phase: 'opening'
+      });
+
+      const res = await restoreTabs({
+        items: selectedItems,
+        target,
+        skipDuplicates: settings.skipDuplicatesOnRestore,
+        openInBackground: Boolean(settings.restoreInBackgroundDefault),
+        onProgress: (p) => setRestoreProgress(p)
+      });
+
+      failedUrls.push(...res.failedUrls);
+      setRestoreFailedPreview(res.failedUrls.slice(0, 5));
+
+      const summaryParts = [
+        `Opened ${res.openedCount}/${selectedItems.length}`,
+        settings.skipDuplicatesOnRestore ? `skipped dupes ${res.skippedDuplicatesCount}` : null,
+        res.failedCount > 0 ? `failed ${res.failedCount}` : null
+      ].filter((x): x is string => Boolean(x));
+
+      const suffix =
+        res.failedUrls.length > 0 ? ` · failed (first 3): ${res.failedUrls.slice(0, 3).join(' · ')}` : '';
+      toast.push('success', summaryParts.join(' · ') + suffix);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.push('error', `Restore failed: ${msg}`);
+    } finally {
+      setRestoreProgress(null);
+    }
   }
 
   return (
@@ -271,15 +365,119 @@ export function ManagerApp() {
                   Created: {formatDateTime(selected.createdAt)} · Tabs: {selected.items.length}
                   {selected.skippedCount > 0 ? ` · Skipped: ${selected.skippedCount}` : ''}
                 </div>
+                {restoreProgress ? (
+                  <div className="progressRow">
+                    <span className="pill">
+                      Opening {restoreProgress.openedCount}/{restoreProgress.total}…
+                    </span>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {restoreProgress.skippedDuplicatesCount > 0
+                        ? `Skipped dupes: ${restoreProgress.skippedDuplicatesCount} · `
+                        : ''}
+                      {restoreProgress.failedCount > 0 ? `Failed: ${restoreProgress.failedCount}` : ''}
+                    </span>
+                  </div>
+                ) : null}
+                {restoreFailedPreview.length > 0 ? (
+                  <div className="muted" style={{ marginTop: 8, fontSize: 12 }}>
+                    Failed to open (first 5): {restoreFailedPreview.join(' · ')}
+                  </div>
+                ) : null}
               </div>
 
               <div className="row">
-                <button
-                  className="btn btnPrimary"
-                  onClick={() => void onOpenAllNewWindow(selected)}
-                >
-                  Open all in new window
-                </button>
+                <div className="menuWrap">
+                  <button
+                    className="btn btnPrimary"
+                    disabled={!settings || !!restoreProgress}
+                    onClick={() => setRestoreMenuOpen((v) => !v)}
+                  >
+                    Restore…
+                  </button>
+                  {restoreMenuOpen ? (
+                    <div className="menu" role="menu">
+                      <button
+                        className="menuItem"
+                        onClick={() =>
+                          void runRestore(selected, null, {
+                            kind: 'current-window'
+                          })
+                        }
+                      >
+                        Restore all → Current window
+                      </button>
+                      <button
+                        className="menuItem"
+                        onClick={() =>
+                          void runRestore(selected, null, {
+                            kind: 'new-window'
+                          })
+                        }
+                      >
+                        Restore all → New window
+                      </button>
+                      {canShowTabGroupRestore() ? (
+                        <button
+                          className="menuItem"
+                          onClick={() =>
+                            void runRestore(selected, null, {
+                              kind: 'new-window-tab-group',
+                              groupTitle: selected.title
+                            })
+                          }
+                        >
+                          Restore all → New window (tab group)
+                        </button>
+                      ) : null}
+                      <div className="menuSep" />
+                      <button
+                        className="menuItem"
+                        disabled={getSelectedIndices(selected.id).size === 0}
+                        onClick={() =>
+                          void runRestore(
+                            selected,
+                            [...getSelectedIndices(selected.id)].sort((a, b) => a - b),
+                            { kind: 'current-window' }
+                          )
+                        }
+                      >
+                        Restore selected → Current window
+                      </button>
+                      <button
+                        className="menuItem"
+                        disabled={getSelectedIndices(selected.id).size === 0}
+                        onClick={() =>
+                          void runRestore(
+                            selected,
+                            [...getSelectedIndices(selected.id)].sort((a, b) => a - b),
+                            { kind: 'new-window' }
+                          )
+                        }
+                      >
+                        Restore selected → New window
+                      </button>
+                      {canShowTabGroupRestore() ? (
+                        <button
+                          className="menuItem"
+                          disabled={getSelectedIndices(selected.id).size === 0}
+                          onClick={() =>
+                            void runRestore(
+                              selected,
+                              [...getSelectedIndices(selected.id)].sort((a, b) => a - b),
+                              { kind: 'new-window-tab-group', groupTitle: selected.title }
+                            )
+                          }
+                        >
+                          Restore selected → New window (tab group)
+                        </button>
+                      ) : null}
+                      <div className="menuSep" />
+                      <button className="menuItem" onClick={() => setRestoreMenuOpen(false)}>
+                        Close
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
                 <button className="btn" onClick={() => void onExportSession(selected.id)}>
                   Export JSON
                 </button>
@@ -289,9 +487,74 @@ export function ManagerApp() {
               </div>
             </div>
 
+            <div className="tabsToolbar">
+              <div className="tabsToolbarLeft">
+                <input
+                  className="input"
+                  placeholder="Search tabs in this session…"
+                  value={tabSearch}
+                  onChange={(e) => setTabSearch(e.target.value)}
+                />
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const cur = getSelectedIndices(selected.id);
+                    const filtered = getFilteredTabIndices(selected.items, tabSearch);
+                    for (const idx of filtered) cur.add(idx);
+                    setSelectedIndices(selected.id, cur);
+                  }}
+                >
+                  Select all filtered
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setSelectedIndices(selected.id, new Set());
+                  }}
+                >
+                  Select none
+                </button>
+              </div>
+              <div className="tabsToolbarRight">
+                <label className="row" style={{ gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={showOnlySelected}
+                    onChange={(e) => setShowOnlySelected(e.target.checked)}
+                  />
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    show only selected
+                  </span>
+                </label>
+                <span className="pill">
+                  selected {getSelectedIndices(selected.id).size}/{selected.items.length}
+                </span>
+              </div>
+            </div>
+
             <div className="items">
-              {selected.items.map((it, idx) => (
-                <div key={`${it.url}_${idx}`} className="tabRow">
+              {(() => {
+                const selectedSet = getSelectedIndices(selected.id);
+                const indices = getFilteredTabIndices(selected.items, tabSearch);
+                const filtered = showOnlySelected
+                  ? indices.filter((idx) => selectedSet.has(idx))
+                  : indices;
+
+                if (filtered.length === 0) {
+                  return <div className="empty">No tabs match your filter.</div>;
+                }
+
+                return filtered.map((idx) => {
+                  const it = selected.items[idx];
+                  const checked = selectedSet.has(idx);
+                  return (
+                    <div key={`${it.url}_${idx}`} className="tabRow">
+                      <input
+                        className="tabRowCheckbox"
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => toggleSelected(selected.id, idx, e.target.checked)}
+                      />
                   {it.favIconUrl ? (
                     <img
                       className="favicon"
@@ -309,12 +572,17 @@ export function ManagerApp() {
                     </div>
                   </div>
                   <div className="row">
-                    <button className="btn" onClick={() => void onOpenTab(it.url)}>
+                    <button className="btn" onClick={() => void onOpenTab(it.url, false)}>
                       Open tab
+                    </button>
+                    <button className="btn" onClick={() => void onOpenTab(it.url, true)}>
+                      Open bg
                     </button>
                   </div>
                 </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           </>
         )}

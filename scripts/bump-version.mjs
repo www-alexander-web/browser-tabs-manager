@@ -24,7 +24,6 @@ import { execFileSync } from 'node:child_process';
 import semver from 'semver';
 
 function usageAndExit() {
-  // eslint-disable-next-line no-console
   console.error(
     [
       'Usage:',
@@ -85,7 +84,6 @@ async function main() {
   const current = pkg?.version;
   const valid = semver.valid(current);
   if (!valid) {
-    // eslint-disable-next-line no-console
     console.error(
       `Version bump aborted: package.json version is not valid semver: ${JSON.stringify(current)}`
     );
@@ -94,7 +92,6 @@ async function main() {
 
   const next = semver.inc(valid, bumpType);
   if (!next) {
-    // eslint-disable-next-line no-console
     console.error(`Version bump aborted: could not bump version ${valid} with ${bumpType}.`);
     process.exit(1);
   }
@@ -123,7 +120,6 @@ async function main() {
 
   execFileSync('git', ['add', 'package.json', 'package-lock.json'], { stdio: 'inherit' });
 
-  // eslint-disable-next-line no-console
   console.log(`Version bumped: ${valid} -> ${next} (${bumpType})`);
 }
 

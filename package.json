@@ -1,6 +1,6 @@
 {
   "name": "browser-tabs-manager",
-  "version": "0.1.6",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Chrome Extension (Manifest V3) — Browser Tabs Manager",

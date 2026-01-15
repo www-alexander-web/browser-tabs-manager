@@ -117,9 +117,90 @@
   gap: 8px;
 }
 
+.tabsToolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.tabsToolbarLeft {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 360px;
+}
+
+.tabsToolbarRight {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tabRow {
+  position: relative;
+}
+
+.tabRowCheckbox {
+  width: 18px;
+  height: 18px;
+}
+
+.menuWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+.menuItem {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.menuItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.menuSep {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 4px;
+}
+
+.progressRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .tabRow {
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: 18px 20px 1fr auto;
   gap: 10px;
   align-items: center;
   border: 1px solid var(--border);

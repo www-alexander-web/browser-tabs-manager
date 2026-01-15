@@ -1,12 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-
-type ToastKind = 'success' | 'error' | 'info';
-
-export type Toast = {
-  id: string;
-  kind: ToastKind;
-  message: string;
-};
+import type { ToastKind, Toast } from '@/pages/ui/toastCore';
+import { makeToastId } from '@/pages/ui/toastCore';
 
 type ToastContextValue = {
   push: (kind: ToastKind, message: string) => void;
@@ -18,7 +12,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const push = useCallback((kind: ToastKind, message: string) => {
-    const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const id = makeToastId();
     const toast: Toast = { id, kind, message };
     setToasts((prev) => [...prev, toast]);
     window.setTimeout(() => {
@@ -42,6 +36,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used within ToastProvider');

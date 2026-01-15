@@ -16,6 +16,8 @@ export type Settings = {
   keepActiveTab: boolean;
   excludePinnedTabs: boolean;
   sessionNamePrefix: string;
+  skipDuplicatesOnRestore: boolean;
+  restoreInBackgroundDefault?: boolean;
 };
 
 export type CaptureInfo = {

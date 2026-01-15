@@ -14,7 +14,9 @@ function defaultSettings(): Settings {
   return {
     keepActiveTab: false,
     excludePinnedTabs: true,
-    sessionNamePrefix: 'Session'
+    sessionNamePrefix: 'Session',
+    skipDuplicatesOnRestore: false,
+    restoreInBackgroundDefault: false
   };
 }
 
@@ -23,10 +25,13 @@ export async function getSettings(): Promise<Settings> {
   const raw = res[SETTINGS_KEY];
   if (!raw || typeof raw !== 'object') return defaultSettings();
   const obj = raw as Partial<Settings>;
+  const defaults = defaultSettings();
   return {
-    keepActiveTab: Boolean(obj.keepActiveTab ?? defaultSettings().keepActiveTab),
-    excludePinnedTabs: Boolean(obj.excludePinnedTabs ?? defaultSettings().excludePinnedTabs),
-    sessionNamePrefix: String(obj.sessionNamePrefix ?? defaultSettings().sessionNamePrefix)
+    keepActiveTab: Boolean(obj.keepActiveTab ?? defaults.keepActiveTab),
+    excludePinnedTabs: Boolean(obj.excludePinnedTabs ?? defaults.excludePinnedTabs),
+    sessionNamePrefix: String(obj.sessionNamePrefix ?? defaults.sessionNamePrefix),
+    skipDuplicatesOnRestore: Boolean(obj.skipDuplicatesOnRestore ?? defaults.skipDuplicatesOnRestore),
+    restoreInBackgroundDefault: Boolean(obj.restoreInBackgroundDefault ?? defaults.restoreInBackgroundDefault)
   };
 }
 

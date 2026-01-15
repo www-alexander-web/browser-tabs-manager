@@ -43,7 +43,7 @@ export function OptionsApp() {
         <img src={chrome.runtime.getURL('icons/icon32.png')} width={28} height={28} alt="BTM" />
         <div>
           <div style={{ fontWeight: 900, fontSize: 18 }}>Options</div>
-          <div style={{ color: 'var(--muted)' }}>Basic capture settings</div>
+          <div style={{ color: 'var(--muted)' }}>Capture + Restore settings</div>
         </div>
       </div>
 
@@ -56,6 +56,7 @@ export function OptionsApp() {
         }}
       >
         <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ fontWeight: 900, marginTop: 4 }}>Capture</div>
           <label style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <input
               type="checkbox"
@@ -89,6 +90,29 @@ export function OptionsApp() {
               locale.
             </div>
           </div>
+
+          <div style={{ fontWeight: 900, marginTop: 6 }}>Restore</div>
+          <label style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={settings.skipDuplicatesOnRestore}
+              onChange={(e) =>
+                setLocalSettings({ ...settings, skipDuplicatesOnRestore: e.target.checked })
+              }
+            />
+            Skip duplicate URLs when restoring (per target window)
+          </label>
+
+          <label style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={Boolean(settings.restoreInBackgroundDefault)}
+              onChange={(e) =>
+                setLocalSettings({ ...settings, restoreInBackgroundDefault: e.target.checked })
+              }
+            />
+            Open restored tabs in background by default
+          </label>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>

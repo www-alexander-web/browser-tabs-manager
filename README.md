@@ -15,11 +15,18 @@ Save the current window’s tabs as a session, close them, and restore/export/im
   - Session items: `{ title, url, favIconUrl? }`
   - Actions:
     - Open one tab
-    - Open all in a new window
+    - Open one tab (foreground or background)
+    - Restore Center: restore all/selected → current window or new window
+    - Optional: restore into a new window as a tab group (if supported)
     - Delete session
     - Export session to JSON
     - Import JSON as a new session
   - Search/filter across **session title + item title/url**
+  - Per-session selection UX:
+    - Checkboxes per tab row
+    - Select all filtered / none
+    - “Show only selected” filter
+    - Selection is preserved while searching
 - **Storage**
   - Uses `chrome.storage.local` with a small repository abstraction
   - No backend, no network required for core functionality
@@ -127,8 +134,18 @@ This creates a new session from tabs in the current window and closes the captur
 
 In the Manager page:
 
-- **Open tab** to restore a single item, or
-- **Open all in new window** to restore a whole session
+- **Restore…** menu:
+  - Restore all → Current window (safe: does not close existing tabs)
+  - Restore all → New window
+  - Restore selected → Current window / New window
+  - Optional: “New window (tab group)” (only shown when supported)
+- **Selection helpers** (within a session):
+  - Checkboxes per row
+  - Select all filtered / Select none
+  - Show only selected
+- **Single tab**:
+  - Open tab (foreground)
+  - Open bg (background)
 
 ### Export / Import
 
@@ -155,6 +172,26 @@ Use this checklist to validate deterministic + safe behavior:
   - Include tabs like `chrome://extensions`, `about:blank`, `chrome-extension://...` → they are not saved/closed; banner shows `skippedRestrictedCount`.
 - **Mixed URLs + close failures**
   - Simulate failures by rapidly closing tabs during capture → session must still be saved; banner shows `failedToCloseCount` and the first few failed URLs.
+
+## Manual verification checklist (restore)
+
+- **Restore into current window**
+  - Use “Restore all → Current window” → existing tabs in the window must remain open (no closing/replacing).
+  - Tabs should open in the saved order.
+- **Restore into new window**
+  - Use “Restore all → New window” → a new window is created; tabs open in saved order.
+- **Restore selection + search**
+  - Search within a session, select a few, clear search → selection remains.
+  - Use “Show only selected”.
+  - Use “Select all filtered”.
+- **Duplicates on/off**
+  - Turn on/off “Skip duplicate URLs when restoring” in Options.
+  - With it ON: restoring into a window that already contains a URL should skip opening that URL again.
+- **Background restore**
+  - Turn on “Open restored tabs in background by default” in Options.
+  - Restored tabs should not steal focus.
+- **Stress (100 tabs)**
+  - Restore a large session (100+) and confirm the progress UI updates and the UI stays responsive.
 
 ## Project structure
 

@@ -6,7 +6,9 @@ describe('buildCapturePlan', () => {
   const baseSettings: Settings = {
     excludePinnedTabs: true,
     keepActiveTab: false,
-    sessionNamePrefix: 'Session'
+    sessionNamePrefix: 'Session',
+    skipDuplicatesOnRestore: false,
+    restoreInBackgroundDefault: false
   };
 
   it('orders captured items by tab.index asc', () => {
