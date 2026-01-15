@@ -69,9 +69,13 @@ Examples:
 
 Disable (transparent + easy):
 
-- **Per commit**: `git commit --no-verify`
+- **Per commit**: `BTM_VERSION_BUMP=0 git commit ...` (or `HUSKY=0 git commit ...`)
 - **Per shell/session**: `export BTM_VERSION_BUMP=0`
 - **Permanently**: remove the `"prepare": "husky"` script and/or uninstall `husky`, and delete `.husky/`
+
+Implementation note:
+
+- The hook runs on `post-commit`, bumps the version, then immediately does a single `git commit --amend --no-edit` so the commit you end up with contains the updated version files.
 
 ### Development (UI)
 

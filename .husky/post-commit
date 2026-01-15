@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+# We use `post-commit` so we can read the *final* commit message and decide the SemVer bump.
+# After bumping we immediately `--amend --no-edit` once, so the commit ends up containing
+# the updated version files (package.json + package-lock.json).
+#
+# Infinite-loop prevention:
+# - The amend is run with `BTM_VERSION_BUMP=0`, and this hook exits early when it's set.
+#
+# Disable:
+# - `BTM_VERSION_BUMP=0 git commit ...`
+# - or `HUSKY=0 git commit ...`
+
+[ "$BTM_VERSION_BUMP" = "0" ] && exit 0
+
+node scripts/bump-version.mjs --from-last-commit
+
+# If the bump produced staged changes, amend once to include them.
+if ! git diff --cached --quiet; then
+  BTM_VERSION_BUMP=0 git commit --amend --no-edit
+fi

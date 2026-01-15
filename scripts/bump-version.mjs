@@ -1,19 +1,23 @@
 /**
  * Bump `package.json` version based on the commit message.
  *
- * Why `commit-msg` hook (not `pre-commit`)?
- * - The bump type depends on the *final* commit message, which only exists once Git
- *   has written the commit message file.
+ * Why `post-commit` hook?
+ * - We need the *final* commit message to decide MAJOR/MINOR/PATCH.
+ * - `commit-msg` can validate the message, but Git does not include index changes made
+ *   inside `commit-msg` in the same commit. So we bump after the commit and then
+ *   immediately `--amend` (once) to include the updated version files.
  *
  * This script:
- * - Reads the commit message file path from argv[2]
+ * - Reads the commit message from either:
+ *   - a file (e.g. `.git/COMMIT_EDITMSG`), or
+ *   - the last commit message (`git log -1 --pretty=%B`)
  * - Determines MAJOR/MINOR/PATCH based on prefixes (SemVer)
- * - Updates ONLY `package.json` (no tags, no extra commits)
- * - Stages `package.json` so the bump is included in the same commit
+ * - Updates `package.json` (source of truth) and keeps `package-lock.json` root version in sync
+ * - Stages the updated files
  *
  * Disable:
- * - `git commit --no-verify`
- * - or set `BTM_VERSION_BUMP=0` in your shell env
+ * - `BTM_VERSION_BUMP=0 git commit ...`
+ * - or `HUSKY=0 git commit ...`
  */
 import fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -21,7 +25,14 @@ import semver from 'semver';
 
 function usageAndExit() {
   // eslint-disable-next-line no-console
-  console.error('Usage: node scripts/bump-version.mjs <path-to-commit-msg-file>');
+  console.error(
+    [
+      'Usage:',
+      '  node scripts/bump-version.mjs --from-last-commit',
+      '  node scripts/bump-version.mjs --message-file <path>',
+      '  node scripts/bump-version.mjs <path>    # shorthand for --message-file'
+    ].join('\n')
+  );
   process.exit(2);
 }
 
@@ -52,10 +63,18 @@ function inferBumpTypeFromCommitMessage(subjectLine) {
 async function main() {
   if (process.env.BTM_VERSION_BUMP === '0') return;
 
-  const commitMsgPath = process.argv[2];
-  if (!commitMsgPath) usageAndExit();
+  const args = process.argv.slice(2);
+  if (args.length === 0) usageAndExit();
 
-  const commitMsgText = await fs.readFile(commitMsgPath, 'utf8');
+  let commitMsgText = '';
+  if (args[0] === '--from-last-commit') {
+    commitMsgText = execFileSync('git', ['log', '-1', '--pretty=%B'], { encoding: 'utf8' });
+  } else {
+    const commitMsgPath = args[0] === '--message-file' ? args[1] : args[0];
+    if (!commitMsgPath) usageAndExit();
+    commitMsgText = await fs.readFile(commitMsgPath, 'utf8');
+  }
+
   const subject = getFirstUserLine(commitMsgText);
   const bumpType = inferBumpTypeFromCommitMessage(subject);
 
