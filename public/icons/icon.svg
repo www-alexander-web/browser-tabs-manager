@@ -1,24 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4aa3ff" />
-      <stop offset="1" stop-color="#7c5cff" />
+    <linearGradient id="tray" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#56C2FF" />
+      <stop offset="1" stop-color="#7A5CFF" />
     </linearGradient>
+    <linearGradient id="tabTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.96" />
+      <stop offset="1" stop-color="#F2F6FF" stop-opacity="0.96" />
+    </linearGradient>
+    <linearGradient id="tabMid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.88" />
+      <stop offset="1" stop-color="#EAF0FF" stop-opacity="0.88" />
+    </linearGradient>
+    <linearGradient id="tabBot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.80" />
+      <stop offset="1" stop-color="#E2EAFF" stop-opacity="0.80" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0B1020" flood-opacity="0.24" />
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0B1020" flood-opacity="0.18" />
+    </filter>
   </defs>
-  <rect x="12" y="12" width="104" height="104" rx="22" fill="url(#g)" />
-  <rect x="28" y="32" width="72" height="10" rx="5" fill="rgba(255,255,255,0.9)" />
-  <rect x="28" y="52" width="56" height="10" rx="5" fill="rgba(255,255,255,0.85)" />
-  <rect x="28" y="72" width="64" height="10" rx="5" fill="rgba(255,255,255,0.8)" />
-  <text
-    x="64"
-    y="104"
-    text-anchor="middle"
-    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif"
-    font-size="16"
-    font-weight="700"
-    fill="rgba(255,255,255,0.95)"
-  >
-    BTM
-  </text>
+
+  <!-- Transparent background; icon is the silhouette itself -->
+  <g filter="url(#shadow)">
+    <!-- Tray / folder base -->
+    <path
+      d="M124 220c0-26.5 21.5-48 48-48h62c10.8 0 21.3 3.6 29.8 10.2l20.4 15.6c4.7 3.6 10.5 5.6 16.4 5.6h84.9c26.5 0 48 21.5 48 48v130c0 35.3-28.7 64-64 64H188c-35.3 0-64-28.7-64-64V220z"
+      fill="url(#tray)"
+    />
+
+    <!-- Inner lip highlight for depth -->
+    <path
+      d="M160 244c0-12.2 9.8-22 22-22h203c12.2 0 22 9.8 22 22v24c0 12.2-9.8 22-22 22H182c-12.2 0-22-9.8-22-22v-24z"
+      fill="#FFFFFF"
+      opacity="0.16"
+    />
+  </g>
+
+  <!-- Stacked tabs -->
+  <g filter="url(#softShadow)">
+    <path
+      d="M166 206c0-20.4 16.6-37 37-37h150c9 0 17.7 3.3 24.4 9.4l20.1 18c4.5 4.1 10.3 6.4 16.4 6.4h22c20.4 0 37 16.6 37 37v10c0 20.4-16.6 37-37 37H203c-20.4 0-37-16.6-37-37v-44z"
+      fill="url(#tabTop)"
+    />
+    <path
+      d="M150 238c0-18.8 15.2-34 34-34h164c7.7 0 15.1 2.7 21 7.6l18.4 15.3c4.1 3.4 9.3 5.1 14.6 5.1h23c18.8 0 34 15.2 34 34v8c0 18.8-15.2 34-34 34H184c-18.8 0-34-15.2-34-34v-36z"
+      fill="url(#tabMid)"
+    />
+    <path
+      d="M138 266c0-16.6 13.4-30 30-30h174c6.8 0 13.3 2.3 18.5 6.6l16.5 13.5c3.6 3 8.1 4.6 12.8 4.6h24c16.6 0 30 13.4 30 30v6c0 16.6-13.4 30-30 30H168c-16.6 0-30-13.4-30-30v-30z"
+      fill="url(#tabBot)"
+    />
+  </g>
+
+  <!-- Magnifier (search/manager vibe) -->
+  <g>
+    <circle cx="346" cy="330" r="54" fill="none" stroke="#0B1020" stroke-opacity="0.28" stroke-width="18" />
+    <circle cx="346" cy="330" r="54" fill="none" stroke="#FFFFFF" stroke-opacity="0.92" stroke-width="12" />
+    <path
+      d="M386 372l38 38"
+      stroke="#0B1020"
+      stroke-opacity="0.25"
+      stroke-width="20"
+      stroke-linecap="round"
+    />
+    <path d="M386 372l38 38" stroke="#FFFFFF" stroke-opacity="0.92" stroke-width="14" stroke-linecap="round" />
+  </g>
 </svg>
 

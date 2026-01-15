@@ -1,0 +1,111 @@
+/**
+ * Bump `package.json` version based on the commit message.
+ *
+ * Why `commit-msg` hook (not `pre-commit`)?
+ * - The bump type depends on the *final* commit message, which only exists once Git
+ *   has written the commit message file.
+ *
+ * This script:
+ * - Reads the commit message file path from argv[2]
+ * - Determines MAJOR/MINOR/PATCH based on prefixes (SemVer)
+ * - Updates ONLY `package.json` (no tags, no extra commits)
+ * - Stages `package.json` so the bump is included in the same commit
+ *
+ * Disable:
+ * - `git commit --no-verify`
+ * - or set `BTM_VERSION_BUMP=0` in your shell env
+ */
+import fs from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import semver from 'semver';
+
+function usageAndExit() {
+  // eslint-disable-next-line no-console
+  console.error('Usage: node scripts/bump-version.mjs <path-to-commit-msg-file>');
+  process.exit(2);
+}
+
+function getFirstUserLine(commitMsgText) {
+  const lines = commitMsgText.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith('#')) continue; // git comments
+    return trimmed;
+  }
+  return '';
+}
+
+function inferBumpTypeFromCommitMessage(subjectLine) {
+  // MAJOR: explicit BREAKING prefix or Conventional Commits "!" marker
+  if (/^BREAKING:/i.test(subjectLine)) return 'major';
+  if (/^[\w-]+(\([^)]+\))?!:/.test(subjectLine)) return 'major';
+
+  // MINOR / PATCH
+  if (/^feat(\([^)]+\))?:/i.test(subjectLine)) return 'minor';
+  if (/^fix(\([^)]+\))?:/i.test(subjectLine)) return 'patch';
+
+  // Default
+  return 'patch';
+}
+
+async function main() {
+  if (process.env.BTM_VERSION_BUMP === '0') return;
+
+  const commitMsgPath = process.argv[2];
+  if (!commitMsgPath) usageAndExit();
+
+  const commitMsgText = await fs.readFile(commitMsgPath, 'utf8');
+  const subject = getFirstUserLine(commitMsgText);
+  const bumpType = inferBumpTypeFromCommitMessage(subject);
+
+  const pkgPath = new URL('../package.json', import.meta.url);
+  const pkgText = await fs.readFile(pkgPath, 'utf8');
+  const pkg = JSON.parse(pkgText);
+
+  const current = pkg?.version;
+  const valid = semver.valid(current);
+  if (!valid) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Version bump aborted: package.json version is not valid semver: ${JSON.stringify(current)}`
+    );
+    process.exit(1);
+  }
+
+  const next = semver.inc(valid, bumpType);
+  if (!next) {
+    // eslint-disable-next-line no-console
+    console.error(`Version bump aborted: could not bump version ${valid} with ${bumpType}.`);
+    process.exit(1);
+  }
+
+  if (next === valid) return;
+
+  pkg.version = next;
+  await fs.writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+
+  // Keep npm lockfile's root version in sync (nice-to-have, avoids confusing diffs).
+  // Note: lockfile sync is NOT a source of truth; `package.json` is.
+  try {
+    const lockPath = new URL('../package-lock.json', import.meta.url);
+    const lockText = await fs.readFile(lockPath, 'utf8');
+    const lock = JSON.parse(lockText);
+    if (typeof lock === 'object' && lock) {
+      if (typeof lock.version === 'string') lock.version = next;
+      if (lock.packages && typeof lock.packages === 'object' && lock.packages['']) {
+        if (typeof lock.packages[''].version === 'string') lock.packages[''].version = next;
+      }
+      await fs.writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
+    }
+  } catch {
+    // Ignore if lockfile doesn't exist or can't be parsed.
+  }
+
+  execFileSync('git', ['add', 'package.json', 'package-lock.json'], { stdio: 'inherit' });
+
+  // eslint-disable-next-line no-console
+  console.log(`Version bumped: ${valid} -> ${next} (${bumpType})`);
+}
+
+await main();

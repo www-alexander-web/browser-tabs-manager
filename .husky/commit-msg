@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+# We use `commit-msg` (not `pre-commit`) because the bump type depends on the final
+# commit message. This hook updates `package.json` and stages it so the same commit
+# contains the version bump.
+#
+# Disable:
+# - `git commit --no-verify`
+# - or set `BTM_VERSION_BUMP=0`
+
+node scripts/bump-version.mjs "$1"
