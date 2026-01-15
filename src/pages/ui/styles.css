@@ -1,0 +1,103 @@
+:root {
+  --bg: #0b1220;
+  --panel: #111a2e;
+  --panel2: #0f1830;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8edf7;
+  --muted: rgba(232, 237, 247, 0.7);
+  --accent: #4aa3ff;
+  --danger: #ff4d6d;
+  --ok: #2dd4bf;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btnPrimary {
+  background: rgba(74, 163, 255, 0.16);
+  border-color: rgba(74, 163, 255, 0.35);
+}
+.btnDanger {
+  background: rgba(255, 77, 109, 0.14);
+  border-color: rgba(255, 77, 109, 0.35);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  outline: none;
+}
+.input:focus {
+  border-color: rgba(74, 163, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(74, 163, 255, 0.12);
+}
+
+.toastHost {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 8px;
+  z-index: 9999;
+}
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  max-width: 380px;
+}
+.toast--success {
+  border-color: rgba(45, 212, 191, 0.35);
+}
+.toast--error {
+  border-color: rgba(255, 77, 109, 0.35);
+}
+.toast--info {
+  border-color: rgba(74, 163, 255, 0.35);
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser Tabs Manager (Dev)</title>
+    <style>
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0b1220;
+        color: #e8edf7;
+      }
+      a {
+        color: #9bd2ff;
+      }
+      .card {
+        max-width: 720px;
+        background: #111a2e;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .muted {
+        color: rgba(232, 237, 247, 0.7);
+      }
+      ul {
+        line-height: 1.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1 style="margin: 0 0 8px 0">Browser Tabs Manager</h1>
+      <p class="muted" style="margin: 0 0 12px 0">
+        Dev entrypoint. For the extension, run <code>npm run build</code> and load
+        <code>dist/</code> as unpacked.
+      </p>
+      <ul style="margin: 0; padding-left: 18px">
+        <li><a href="/pages/manager/index.html">Manager page</a></li>
+        <li><a href="/pages/options/index.html">Options page</a></li>
+      </ul>
+    </div>
+  </body>
+</html>

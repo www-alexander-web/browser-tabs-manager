@@ -1,0 +1,159 @@
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel2), rgba(17, 26, 46, 0.5));
+  padding: 14px;
+  overflow: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 12px 4px;
+}
+.brandTitle {
+  font-weight: 800;
+}
+.brandSub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.main {
+  padding: 18px;
+  overflow: auto;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sessionsList {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.sessionItem {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+}
+.sessionItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.sessionItemActive {
+  border-color: rgba(74, 163, 255, 0.35);
+  background: rgba(74, 163, 255, 0.11);
+}
+.sessionTitle {
+  font-weight: 700;
+  margin: 0;
+  font-size: 14px;
+}
+.sessionMeta {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.empty {
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+
+.header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.titleInput {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.banner {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.bannerError {
+  border-color: rgba(255, 77, 109, 0.35);
+  background: rgba(255, 77, 109, 0.08);
+}
+.bannerOk {
+  border-color: rgba(45, 212, 191, 0.35);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.items {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.tabRow {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.favicon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tabTitle {
+  font-weight: 700;
+  font-size: 13px;
+}
+.tabUrl {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70ch;
+}
+
+.pill {
+  font-size: 12px;
+  color: rgba(232, 237, 247, 0.85);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
