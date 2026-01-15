@@ -23,8 +23,16 @@ export type CaptureInfo = {
   createdSessionId?: string;
   capturedCount: number;
   closedCount: number;
-  skippedCount: number;
-  error?: string;
+  skippedCount: number; // capture-skipped total (pinned + restricted)
+  skippedRestrictedCount?: number;
+  skippedPinnedCount?: number;
+  skippedActiveCount?: number; // not closed due to keepActiveTab (but still captured)
+  failedToCloseCount?: number;
+  failedToCloseTabIds?: number[];
+  failedToCloseUrls?: string[];
+  closeError?: string; // closing-specific error (non-fatal; session is already saved)
+  debugDryRun?: boolean;
+  error?: string; // fatal capture error (saving session failed, query failed, etc.)
 };
 
 export type SessionExportV1 = {

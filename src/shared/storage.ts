@@ -12,7 +12,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function defaultSettings(): Settings {
   return {
-    keepActiveTab: true,
+    keepActiveTab: false,
     excludePinnedTabs: true,
     sessionNamePrefix: 'Session'
   };
@@ -90,7 +90,57 @@ export async function getLastCapture(): Promise<CaptureInfo | undefined> {
   const res = await storageLocalGet<Record<string, unknown>>(LAST_CAPTURE_KEY);
   const raw = res[LAST_CAPTURE_KEY];
   if (!raw || typeof raw !== 'object') return undefined;
-  return raw as CaptureInfo;
+  const obj = raw as Partial<CaptureInfo> & Record<string, unknown>;
+
+  // Backwards-compatible, defensive decode. Older versions only had: skippedCount + error.
+  const createdAt = typeof obj.createdAt === 'number' ? obj.createdAt : Date.now();
+  const createdSessionId = typeof obj.createdSessionId === 'string' ? obj.createdSessionId : undefined;
+  const capturedCount = typeof obj.capturedCount === 'number' ? obj.capturedCount : 0;
+  const closedCount = typeof obj.closedCount === 'number' ? obj.closedCount : 0;
+
+  const skippedPinnedCount = typeof obj.skippedPinnedCount === 'number' ? obj.skippedPinnedCount : 0;
+  const skippedRestrictedCount =
+    typeof obj.skippedRestrictedCount === 'number'
+      ? obj.skippedRestrictedCount
+      : typeof obj.skippedCount === 'number'
+        ? obj.skippedCount
+        : 0;
+  const skippedCount =
+    typeof obj.skippedCount === 'number' ? obj.skippedCount : skippedPinnedCount + skippedRestrictedCount;
+
+  const skippedActiveCount = typeof obj.skippedActiveCount === 'number' ? obj.skippedActiveCount : 0;
+
+  const failedToCloseTabIds = Array.isArray(obj.failedToCloseTabIds)
+    ? obj.failedToCloseTabIds.filter((x): x is number => typeof x === 'number')
+    : [];
+  const failedToCloseUrls = Array.isArray(obj.failedToCloseUrls)
+    ? obj.failedToCloseUrls.filter((x): x is string => typeof x === 'string')
+    : [];
+  const failedToCloseCount =
+    typeof obj.failedToCloseCount === 'number'
+      ? obj.failedToCloseCount
+      : Math.max(failedToCloseTabIds.length, failedToCloseUrls.length);
+
+  const closeError = typeof obj.closeError === 'string' ? obj.closeError : undefined;
+  const debugDryRun = typeof obj.debugDryRun === 'boolean' ? obj.debugDryRun : false;
+  const error = typeof obj.error === 'string' ? obj.error : undefined;
+
+  return {
+    createdAt,
+    createdSessionId,
+    capturedCount,
+    closedCount,
+    skippedCount,
+    skippedRestrictedCount,
+    skippedPinnedCount,
+    skippedActiveCount,
+    failedToCloseCount,
+    failedToCloseTabIds,
+    failedToCloseUrls,
+    closeError,
+    debugDryRun,
+    error
+  };
 }
 
 export async function exportSessionAsJson(sessionId: string): Promise<string> {

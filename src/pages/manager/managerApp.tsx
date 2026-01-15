@@ -212,13 +212,33 @@ export function ManagerApp() {
                 <span className="muted">{formatDateTime(lastCapture.createdAt)}</span>
               </div>
               <span className="pill">
-                saved {lastCapture.capturedCount} · closed {lastCapture.closedCount} · skipped{' '}
-                {lastCapture.skippedCount}
+                saved {lastCapture.capturedCount} · closed {lastCapture.closedCount}
               </span>
+            </div>
+            <div style={{ marginTop: 6 }} className="muted">
+              Skipped: restricted{' '}
+              {lastCapture.skippedRestrictedCount ?? lastCapture.skippedCount ?? 0} · pinned{' '}
+              {lastCapture.skippedPinnedCount ?? 0} · kept active {lastCapture.skippedActiveCount ?? 0}
+              {typeof lastCapture.failedToCloseCount === 'number' && lastCapture.failedToCloseCount > 0
+                ? ` · failed to close ${lastCapture.failedToCloseCount}`
+                : ''}
+              {lastCapture.debugDryRun ? ' · dry-run (no tabs were closed)' : ''}
             </div>
             {lastCapture.error ? (
               <div style={{ marginTop: 6 }} className="muted">
                 Error: {lastCapture.error}
+              </div>
+            ) : null}
+            {!lastCapture.error && lastCapture.closeError ? (
+              <div style={{ marginTop: 6 }} className="muted">
+                Close warning: {lastCapture.closeError}
+              </div>
+            ) : null}
+            {!lastCapture.error &&
+            Array.isArray(lastCapture.failedToCloseUrls) &&
+            lastCapture.failedToCloseUrls.length > 0 ? (
+              <div style={{ marginTop: 6 }} className="muted">
+                Failed to close (first 5): {lastCapture.failedToCloseUrls.slice(0, 5).join(' · ')}
               </div>
             ) : null}
           </div>

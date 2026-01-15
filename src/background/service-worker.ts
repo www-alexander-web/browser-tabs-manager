@@ -6,9 +6,49 @@ import {
   windowsGetCurrent
 } from '@/shared/chrome';
 import { getSettings, addSession, setLastCapture } from '@/shared/storage';
-import type { TabItem } from '@/shared/types';
-import { isRestrictedUrl } from '@/shared/url';
+import { buildCapturePlan } from '@/shared/capturePlan';
 import { formatSessionTitle } from '@/shared/time';
+
+// Debug flags (safe to leave false in production builds).
+const DEBUG = false;
+
+/**
+ * Developer mode: simulate capture without closing tabs.
+ * This still persists the session + last capture info, so you can inspect results safely.
+ */
+const DEBUG_DRY_RUN = false;
+
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+async function removeTabsSafely(
+  closeTabIds: number[]
+): Promise<{ closedTabIds: number[]; failedTabIds: number[]; closeError?: string }> {
+  if (closeTabIds.length === 0) return { closedTabIds: [], failedTabIds: [] };
+
+  // Prefer a single call (fast + minimizes race windows).
+  try {
+    await tabsRemove(closeTabIds);
+    return { closedTabIds: closeTabIds, failedTabIds: [] };
+  } catch (e) {
+    const closeError = errMsg(e);
+
+    // Fallback: per-tab closes so one bad tabId doesn't prevent closing the others.
+    const closedTabIds: number[] = [];
+    const failedTabIds: number[] = [];
+    for (const id of closeTabIds) {
+      try {
+        await tabsRemove([id]);
+        closedTabIds.push(id);
+      } catch {
+        failedTabIds.push(id);
+      }
+    }
+
+    return { closedTabIds, failedTabIds, closeError };
+  }
+}
 
 async function captureCurrentWindowTabs(): Promise<void> {
   const startedAt = Date.now();
@@ -18,32 +58,33 @@ async function captureCurrentWindowTabs(): Promise<void> {
     const windowId = win.id;
     if (typeof windowId !== 'number') throw new Error('No current window');
 
+    // Only tabs from the CURRENT WINDOW.
     const tabs = await tabsQuery({ windowId, currentWindow: true });
-    const activeTabId = tabs.find((t) => t.active)?.id;
 
-    const eligible = tabs.filter((t) => {
-      if (settings.excludePinnedTabs && t.pinned) return false;
-      if (settings.keepActiveTab && typeof activeTabId === 'number' && t.id === activeTabId)
-        return false;
-      return true;
-    });
+    // Deterministic computation: stable ordering + explicit close set.
+    const plan = buildCapturePlan(tabs, settings);
+    const {
+      items,
+      closeCandidates,
+      closeTabIds,
+      capturedCount,
+      skippedCount,
+      skippedRestrictedCount,
+      skippedPinnedCount,
+      skippedActiveCount,
+      capturedUrlsPreview
+    } = plan;
 
-    let skippedCount = 0;
-    const items: TabItem[] = [];
-    const closeIds: number[] = [];
-
-    for (const t of eligible) {
-      const url = t.url ?? '';
-      if (!url || isRestrictedUrl(url)) {
-        skippedCount += 1;
-        continue;
-      }
-      items.push({
-        title: (t.title ?? url).trim() || url,
-        url,
-        favIconUrl: t.favIconUrl ?? undefined
+    if (DEBUG) {
+      console.log('[BTM] capture plan', {
+        windowId,
+        capturedCount,
+        toClose: closeTabIds.length,
+        skippedRestrictedCount,
+        skippedPinnedCount,
+        skippedActiveCount,
+        urls: capturedUrlsPreview
       });
-      if (typeof t.id === 'number') closeIds.push(t.id);
     }
 
     if (items.length === 0) {
@@ -52,6 +93,13 @@ async function captureCurrentWindowTabs(): Promise<void> {
         capturedCount: 0,
         closedCount: 0,
         skippedCount,
+        skippedRestrictedCount,
+        skippedPinnedCount,
+        skippedActiveCount,
+        failedToCloseCount: 0,
+        failedToCloseTabIds: [],
+        failedToCloseUrls: [],
+        debugDryRun: DEBUG_DRY_RUN,
         error:
           skippedCount > 0
             ? 'All eligible tabs had restricted URLs and were skipped.'
@@ -69,32 +117,51 @@ async function captureCurrentWindowTabs(): Promise<void> {
       items
     });
 
-    let closedCount = 0;
+    let closedTabIds: number[] = [];
+    let failedTabIds: number[] = [];
     let closeError: string | undefined;
-    try {
-      await tabsRemove(closeIds);
-      closedCount = closeIds.length;
-    } catch (e) {
-      closeError = e instanceof Error ? e.message : String(e);
+
+    if (!DEBUG_DRY_RUN) {
+      const res = await removeTabsSafely(closeTabIds);
+      closedTabIds = res.closedTabIds;
+      failedTabIds = res.failedTabIds;
+      closeError = res.closeError;
     }
+
+    const urlById = new Map<number, string>(closeCandidates.map((c) => [c.tabId, c.url]));
+    const failedUrls = failedTabIds.map((id) => urlById.get(id)).filter((x): x is string => !!x);
 
     await setLastCapture({
       createdAt: startedAt,
       createdSessionId: created.id,
-      capturedCount: items.length,
-      closedCount,
+      capturedCount,
+      closedCount: closedTabIds.length,
       skippedCount,
-      error: closeError
+      skippedRestrictedCount,
+      skippedPinnedCount,
+      skippedActiveCount,
+      failedToCloseCount: failedTabIds.length,
+      failedToCloseTabIds: failedTabIds,
+      failedToCloseUrls: failedUrls,
+      closeError,
+      debugDryRun: DEBUG_DRY_RUN
     });
 
     await tabsCreate({ url: runtimeGetURL('pages/manager/index.html') });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = errMsg(e);
     await setLastCapture({
       createdAt: startedAt,
       capturedCount: 0,
       closedCount: 0,
       skippedCount: 0,
+      skippedRestrictedCount: 0,
+      skippedPinnedCount: 0,
+      skippedActiveCount: 0,
+      failedToCloseCount: 0,
+      failedToCloseTabIds: [],
+      failedToCloseUrls: [],
+      debugDryRun: DEBUG_DRY_RUN,
       error: msg
     });
     // Still open Manager so user sees the error banner.

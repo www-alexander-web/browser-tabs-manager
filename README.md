@@ -139,6 +139,23 @@ In the Manager page:
 
 Some URLs cannot be accessed/managed by extensions (e.g. `chrome://` pages). These items are **skipped** during capture and tracked as `skippedCount` so you can see what was omitted.
 
+## Manual verification matrix (capture/close)
+
+Use this checklist to validate deterministic + safe behavior:
+
+- **Current window only**
+  - Open two Chrome windows with different tabs → trigger capture in one window → only that window’s tabs are saved/closed.
+- **Pinned tabs**
+  - With “Exclude pinned tabs” enabled → pinned tabs remain open and are not saved; banner shows `skippedPinnedCount`.
+  - With it disabled → pinned tabs are saved and (if eligible) closed.
+- **Active tab**
+  - With “Keep active tab” enabled → active tab is saved but not closed; banner shows `skippedActiveCount = 1`.
+  - With it disabled → active tab is saved and can be closed.
+- **Restricted URLs**
+  - Include tabs like `chrome://extensions`, `about:blank`, `chrome-extension://...` → they are not saved/closed; banner shows `skippedRestrictedCount`.
+- **Mixed URLs + close failures**
+  - Simulate failures by rapidly closing tabs during capture → session must still be saved; banner shows `failedToCloseCount` and the first few failed URLs.
+
 ## Project structure
 
 ```text
