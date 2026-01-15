@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Browser Tabs Manager",
   "description": "Save, search, export/import, and restore tab sessions.",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "action": {
     "default_title": "Browser Tabs Manager",
     "default_popup": "pages/popup/index.html",

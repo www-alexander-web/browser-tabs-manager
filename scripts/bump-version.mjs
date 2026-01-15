@@ -118,7 +118,24 @@ async function main() {
     // Ignore if lockfile doesn't exist or can't be parsed.
   }
 
-  execFileSync('git', ['add', 'package.json', 'package-lock.json'], { stdio: 'inherit' });
+  // Keep extension manifest version in sync (Chrome uses this as the extension version).
+  try {
+    const manifestPath = new URL('../public/manifest.json', import.meta.url);
+    const manifestText = await fs.readFile(manifestPath, 'utf8');
+    const manifest = JSON.parse(manifestText);
+    if (manifest && typeof manifest === 'object') {
+      if (typeof manifest.version === 'string') {
+        manifest.version = next;
+        await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+      }
+    }
+  } catch {
+    // Ignore if manifest doesn't exist or can't be parsed.
+  }
+
+  execFileSync('git', ['add', 'package.json', 'package-lock.json', 'public/manifest.json'], {
+    stdio: 'inherit'
+  });
 
   console.log(`Version bumped: ${valid} -> ${next} (${bumpType})`);
 }
