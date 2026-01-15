@@ -176,7 +176,9 @@ export async function restoreTabs(req: RestoreRequest): Promise<RestoreResult> {
       const created = await tabsCreate({
         windowId,
         url,
-        active: !req.openInBackground
+        // If restoring in the foreground, only focus the first successfully-opened tab.
+        // Focusing every tab causes noticeable UI thrash on large restores.
+        active: !req.openInBackground && openedCount === 0
       });
       if (typeof created.id === 'number') openedTabIds.push(created.id);
       openedCount += 1;
