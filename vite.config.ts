@@ -18,6 +18,7 @@ export default defineConfig({
         index: path.resolve(__dirname, 'index.html'),
         manager: path.resolve(__dirname, 'pages/manager/index.html'),
         options: path.resolve(__dirname, 'pages/options/index.html'),
+        popup: path.resolve(__dirname, 'pages/popup/index.html'),
         'background/service-worker': path.resolve(__dirname, 'src/background/service-worker.ts')
       },
       output: {

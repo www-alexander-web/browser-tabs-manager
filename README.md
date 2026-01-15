@@ -125,10 +125,18 @@ npm run icons
 
 ### Send tabs to the manager (capture)
 
-- Click the extension’s toolbar icon **or**
+- Click the extension’s toolbar icon → the popup opens → click **“Send tabs to Manager”** **or**
 - Use the command shortcut (**Ctrl+Shift+Y**, macOS: **Cmd+Shift+Y**)
 
 This creates a new session from tabs in the current window and closes the captured tabs.
+
+### Manual verification (popup)
+
+- Build the project and load unpacked
+- Click the toolbar icon → popup opens
+- Click **Send tabs to Manager** → capture runs → Manager opens with a new session
+- Use **Ctrl+Shift+Y** / **Cmd+Shift+Y** → capture runs without opening the popup
+- Re-open the popup → “Last capture” shows updated stats
 
 ### Restore tabs
 
@@ -203,6 +211,7 @@ browser-tabs-manager/
   pages/
     manager/index.html
     options/index.html
+    popup/index.html
   scripts/
     generate-icons.mjs
   src/
@@ -223,6 +232,9 @@ browser-tabs-manager/
       options/
         main.tsx
         optionsApp.tsx
+      popup/
+        main.tsx
+        popupApp.tsx
       ui/
         styles.css
         toast.tsx

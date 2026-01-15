@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "action": {
     "default_title": "Browser Tabs Manager",
+    "default_popup": "pages/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16.png",
       "24": "icons/icon-24.png",

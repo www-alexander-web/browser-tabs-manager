@@ -5,9 +5,11 @@ import {
   tabsRemove,
   windowsGetCurrent
 } from '@/shared/chrome';
-import { getSettings, addSession, setLastCapture } from '@/shared/storage';
+import { addSession, getLastCapture, getSettings, setLastCapture } from '@/shared/storage';
 import { buildCapturePlan } from '@/shared/capturePlan';
 import { formatSessionTitle } from '@/shared/time';
+import type { BackgroundRequest } from '@/shared/messages';
+import type { CaptureInfo } from '@/shared/types';
 
 // Debug flags (safe to leave false in production builds).
 const DEBUG = false;
@@ -20,6 +22,14 @@ const DEBUG_DRY_RUN = false;
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+async function openManager(): Promise<void> {
+  await tabsCreate({ url: runtimeGetURL('pages/manager/index.html') });
+}
+
+async function openOptions(): Promise<void> {
+  await tabsCreate({ url: runtimeGetURL('pages/options/index.html') });
 }
 
 async function removeTabsSafely(
@@ -50,7 +60,7 @@ async function removeTabsSafely(
   }
 }
 
-async function captureCurrentWindowTabs(): Promise<void> {
+async function captureCurrentWindow(): Promise<CaptureInfo> {
   const startedAt = Date.now();
   try {
     const settings = await getSettings();
@@ -88,7 +98,7 @@ async function captureCurrentWindowTabs(): Promise<void> {
     }
 
     if (items.length === 0) {
-      await setLastCapture({
+      const info: CaptureInfo = {
         createdAt: startedAt,
         capturedCount: 0,
         closedCount: 0,
@@ -104,9 +114,9 @@ async function captureCurrentWindowTabs(): Promise<void> {
           skippedCount > 0
             ? 'All eligible tabs had restricted URLs and were skipped.'
             : 'No tabs to capture.'
-      });
-      await tabsCreate({ url: runtimeGetURL('pages/manager/index.html') });
-      return;
+      };
+      await setLastCapture(info);
+      return info;
     }
 
     // Persist first, then close. If closing fails, keep session anyway.
@@ -131,7 +141,7 @@ async function captureCurrentWindowTabs(): Promise<void> {
     const urlById = new Map<number, string>(closeCandidates.map((c) => [c.tabId, c.url]));
     const failedUrls = failedTabIds.map((id) => urlById.get(id)).filter((x): x is string => !!x);
 
-    await setLastCapture({
+    const info: CaptureInfo = {
       createdAt: startedAt,
       createdSessionId: created.id,
       capturedCount,
@@ -145,12 +155,12 @@ async function captureCurrentWindowTabs(): Promise<void> {
       failedToCloseUrls: failedUrls,
       closeError,
       debugDryRun: DEBUG_DRY_RUN
-    });
-
-    await tabsCreate({ url: runtimeGetURL('pages/manager/index.html') });
+    };
+    await setLastCapture(info);
+    return info;
   } catch (e) {
     const msg = errMsg(e);
-    await setLastCapture({
+    const info: CaptureInfo = {
       createdAt: startedAt,
       capturedCount: 0,
       closedCount: 0,
@@ -163,22 +173,54 @@ async function captureCurrentWindowTabs(): Promise<void> {
       failedToCloseUrls: [],
       debugDryRun: DEBUG_DRY_RUN,
       error: msg
-    });
-    // Still open Manager so user sees the error banner.
-    try {
-      await tabsCreate({ url: runtimeGetURL('pages/manager/index.html') });
-    } catch {
-      // ignore
-    }
+    };
+    await setLastCapture(info);
+    return info;
   }
 }
 
-chrome.action.onClicked.addListener(() => {
-  void captureCurrentWindowTabs();
-});
-
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'send-tabs-to-manager') {
-    void captureCurrentWindowTabs();
+    void (async () => {
+      await captureCurrentWindow();
+      await openManager();
+    })();
   }
+});
+
+chrome.runtime.onMessage.addListener((raw: unknown, _sender, sendResponse) => {
+  const msg = raw as BackgroundRequest;
+
+  void (async () => {
+    switch (msg?.type) {
+      case 'CAPTURE_CURRENT_WINDOW': {
+        const info = await captureCurrentWindow();
+        const ok = !info.error && info.capturedCount > 0;
+        sendResponse({ ok, error: info.error, lastCapture: info });
+        return;
+      }
+      case 'OPEN_MANAGER': {
+        await openManager();
+        sendResponse({ ok: true });
+        return;
+      }
+      case 'OPEN_OPTIONS': {
+        await openOptions();
+        sendResponse({ ok: true });
+        return;
+      }
+      case 'GET_LAST_CAPTURE': {
+        const last = (await getLastCapture()) ?? null;
+        sendResponse({ lastCapture: last });
+        return;
+      }
+      default: {
+        // Ignore unknown messages.
+        sendResponse({ ok: false, error: 'Unknown message type', lastCapture: null });
+      }
+    }
+  })();
+
+  // Keep the service worker alive for async response.
+  return true;
 });
